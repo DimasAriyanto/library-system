@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id            String        @id @default(uuid())
+  code          String        @unique
+  name          String
+  penaltyExpiry DateTime?
+  transactions  Transaction[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?     @db.Timestamp(0)
+
+  @@map("members")
+}
+
+model Book {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  title     String
+  author    String
+  stock     Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? @db.Timestamp(0)
+
+  transactions Transaction[]
+
+  @@map("books")
+}
+
+model Transaction {
+  id         String    @id @default(uuid())
+  memberId   String
+  bookId     String
+  borrowedAt DateTime
+  returnedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime? @db.Timestamp(0)
+
+  member Member @relation(fields: [memberId], references: [id])
+  book   Book   @relation(fields: [bookId], references: [id])
+
+  @@unique([memberId, bookId, borrowedAt])
+  @@map("transactions")
+}
