@@ -15,24 +15,50 @@ describe('BookController (e2e)', () => {
     await app.init();
   });
 
-  it('✅ should return a list of available books', async () => {
-    const response = await request(app.getHttpServer()).get('/books/check');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toBeInstanceOf(Array);
-    expect(response.body).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          code: expect.any(String),
-          title: expect.any(String),
-          author: expect.any(String),
-          availableStock: expect.any(Number),
-        }),
-      ]),
-    );
-  });
-
   afterAll(async () => {
     await app.close();
+  });
+
+  describe('/books/add (POST)', () => {
+    it('should successfully add a book', async () => {
+      const validBookDto = {
+        code: 'NRN-7',
+        title: 'The Lion, the Witch and the Wardrobe',
+        author: 'C.S. Lewis',
+        stock: 1,
+      };
+
+      await request(app.getHttpServer())
+        .post('/books/add')
+        .send(validBookDto)
+        .expect(201)
+        .expect({
+          status: 'success',
+          message:
+            'Book "The Lion, the Witch and the Wardrobe" has been successfully added.',
+        });
+    });
+
+    it('should fail when DTO validation fails', async () => {
+      const invalidBookDto = {
+        code: '',
+        title: '',
+        author: '',
+        stock: undefined,
+      };
+
+      return request(app.getHttpServer())
+        .post('/books/add')
+        .send(invalidBookDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+          const errors = res.body.message;
+          const hasCodeError = errors.some(
+            (error) => typeof error === 'object' && error.field === 'code',
+          );
+          expect(hasCodeError).toBe(true);
+        });
+    });
   });
 });

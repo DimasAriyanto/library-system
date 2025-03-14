@@ -1,10 +1,11 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CheckMemberUseCase } from '../../application/use-cases/check-member.use-case';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateMemberUseCase } from '../../application/use-cases/create-member.use-case';
 import { ZodValidationPipe } from '../../shared/middleware/zod-validation.middleware';
 import {
   CreateMemberDto,
+  CreateMemberDtoClass,
   CreateMemberSchema,
 } from '../../application/dtos/create-member.dto';
 
@@ -17,10 +18,34 @@ export class MemberController {
   ) {}
 
   @Post('/add')
+  @ApiOperation({ summary: 'Tambah anggota baru ke sistem perpustakaan' })
+  @ApiBody({
+    type: CreateMemberDtoClass,
+    description: 'Data anggota yang akan ditambahkan',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Anggota berhasil ditambahkan.',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Member "Angga" successfully added.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Data tidak valid.',
+  })
   async addMember(
     @Body(new ZodValidationPipe(CreateMemberSchema)) dto: CreateMemberDto,
   ) {
-    return this.createMemberUseCase.execute(dto);
+    const result = await this.createMemberUseCase.execute(dto);
+    return { status: 'success', message: result };
   }
 
   @Get('/check')
@@ -33,15 +58,20 @@ export class MemberController {
       items: {
         type: 'object',
         properties: {
-          code: { type: 'string', example: 'B001' },
-          title: { type: 'string', example: 'Laskar Pelangi' },
-          author: { type: 'string', example: 'Andrea Hirata' },
+          code: { type: 'string', example: 'JK-45' },
+          title: { type: 'string', example: 'Harry Potter' },
+          author: { type: 'string', example: 'J.K Rowling' },
           availableStock: { type: 'number', example: 5 },
         },
       },
     },
   })
   async getMembers() {
-    return this.checkMemberUseCase.execute();
+    const result = await this.checkMemberUseCase.execute();
+    return {
+      status: 'success',
+      message: 'Daftar anggota berhasil dimuat.',
+      data: result,
+    };
   }
 }

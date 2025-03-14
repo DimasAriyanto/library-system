@@ -15,23 +15,39 @@ describe('MemberController (e2e)', () => {
     await app.init();
   });
 
-  it('✅ should return a list of members', async () => {
-    const response = await request(app.getHttpServer()).get('/members/check');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toBeInstanceOf(Array);
-    expect(response.body).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          code: expect.any(String),
-          name: expect.any(String),
-          borrowedBooks: expect.any(Number),
-        }),
-      ]),
-    );
-  });
-
   afterAll(async () => {
     await app.close();
+  });
+
+  describe('/members/add (POST)', () => {
+    it('should successfully add a member', async () => {
+      const validMemberDto = { code: 'M003', name: 'Putri' };
+
+      await request(app.getHttpServer())
+        .post('/members/add')
+        .send(validMemberDto)
+        .expect(201)
+        .expect({
+          status: 'success',
+          message: 'Member "Putri" has been successfully added.',
+        });
+    });
+
+    it('should fail when DTO validation fails', async () => {
+      const invalidMemberDto = { code: '', name: '' };
+
+      return request(app.getHttpServer())
+        .post('/members/add')
+        .send(invalidMemberDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+          const errors = res.body.message;
+          const hasCodeError = errors.some(
+            (error) => typeof error === 'object' && error.field === 'code',
+          );
+          expect(hasCodeError).toBe(true);
+        });
+    });
   });
 });

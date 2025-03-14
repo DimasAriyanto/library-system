@@ -1,10 +1,11 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CheckBookUseCase } from '../../application/use-cases/check-book.use-case';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ZodValidationPipe } from '../../shared/middleware/zod-validation.middleware';
 import { CreateBookUseCase } from '../../application/use-cases/create-book.use-case';
 import {
   CreateBookDto,
+  CreateBookDtoClass,
   CreateBookSchema,
 } from '../../application/dtos/create-book.dto';
 
@@ -17,10 +18,34 @@ export class BookController {
   ) {}
 
   @Post('/add')
+  @ApiOperation({ summary: 'Tambah buku baru ke sistem perpustakaan' })
+  @ApiBody({
+    type: CreateBookDtoClass,
+    description: 'Data buku yang akan ditambahkan',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Buku berhasil ditambahkan.',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'Book "Harry Potter" successfully added.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Data tidak valid.',
+  })
   async addBook(
     @Body(new ZodValidationPipe(CreateBookSchema)) dto: CreateBookDto,
   ) {
-    return this.createBookUseCase.execute(dto);
+    const result = await this.createBookUseCase.execute(dto);
+    return { status: 'success', message: result };
   }
 
   @Get('/check')
@@ -34,13 +59,18 @@ export class BookController {
         type: 'object',
         properties: {
           code: { type: 'string', example: 'M001' },
-          name: { type: 'string', example: 'John Doe' },
+          name: { type: 'string', example: 'Angga' },
           borrowedBooks: { type: 'number', example: 1 },
         },
       },
     },
   })
   async getAvailableBooks() {
-    return this.checkBookUseCase.execute();
+    const result = await this.checkBookUseCase.execute();
+    return {
+      status: 'success',
+      message: 'Daftar buku berhasil dimuat.',
+      data: result,
+    };
   }
 }

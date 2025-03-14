@@ -18,7 +18,7 @@ export class ReturnBookDtoClass {
 
   @ApiProperty({
     description: 'Kode buku yang dikembalikan',
-    example: 'B001',
+    example: 'JK-45',
     required: true,
   })
   bookCode: string;

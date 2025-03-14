@@ -18,7 +18,7 @@ export class BorrowBookDtoClass {
 
   @ApiProperty({
     description: 'Kode buku yang akan dipinjam',
-    example: 'B001',
+    example: 'JK-45',
     required: true,
   })
   bookCode: string;

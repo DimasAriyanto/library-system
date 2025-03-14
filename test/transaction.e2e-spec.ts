@@ -15,63 +15,73 @@ describe('TransactionController (e2e)', () => {
     await app.init();
   });
 
-  it('✅ should borrow a book successfully', async () => {
-    const borrowDto = {
-      memberCode: 'M001',
-      bookCode: 'JK-45',
-    };
-
-    const response = await request(app.getHttpServer())
-      .post('/transaction/borrow')
-      .send(borrowDto);
-
-    expect(response.status).toBe(201);
-    expect(response.text).toContain('successfully borrowed');
-  });
-
-  it('❌ should fail to borrow a book if data is invalid', async () => {
-    const borrowDto = {
-      memberCode: '',
-      bookCode: '',
-    };
-
-    const response = await request(app.getHttpServer())
-      .post('/transaction/borrow')
-      .send(borrowDto);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('Invalid data provided');
-  });
-
-  it('✅ should return a book successfully', async () => {
-    const returnDto = {
-      memberCode: 'M001',
-      bookCode: 'JK-45',
-    };
-
-    const response = await request(app.getHttpServer())
-      .post('/transaction/return')
-      .send(returnDto);
-
-    expect(response.status).toBe(201);
-    expect(response.text).toContain('successfully returned');
-  });
-
-  it('❌ should fail to return a book if data is invalid', async () => {
-    const returnDto = {
-      memberCode: '',
-      bookCode: '',
-    };
-
-    const response = await request(app.getHttpServer())
-      .post('/transaction/return')
-      .send(returnDto);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('Invalid data provided');
-  });
-
   afterAll(async () => {
     await app.close();
+  });
+
+  describe('/transaction/borrow (POST)', () => {
+    it('should successfully borrow a book', async () => {
+      const validBorrowDto = { memberCode: 'M001', bookCode: 'JK-45' };
+
+      await request(app.getHttpServer())
+        .post('/transaction/borrow')
+        .send(validBorrowDto)
+        .expect(201)
+        .expect({
+          status: 'success',
+          message: 'Book "Harry Potter" successfully borrowed by Angga',
+        });
+    });
+
+    it('should fail when DTO validation fails', async () => {
+      const invalidBorrowDto = { memberCode: '', bookCode: '' };
+
+      return request(app.getHttpServer())
+        .post('/transaction/borrow')
+        .send(invalidBorrowDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+          const errors = res.body.message;
+          const hasMemberCodeError = errors.some(
+            (error) =>
+              typeof error === 'object' && error.field === 'memberCode',
+          );
+          expect(hasMemberCodeError).toBe(true);
+        });
+    });
+  });
+
+  describe('/transaction/return (POST)', () => {
+    it('should successfully return a book', async () => {
+      const validReturnDto = { memberCode: 'M001', bookCode: 'JK-45' };
+
+      await request(app.getHttpServer())
+        .post('/transaction/return')
+        .send(validReturnDto)
+        .expect(201)
+        .expect({
+          status: 'success',
+          message: 'Book "Harry Potter" successfully returned.',
+        });
+    });
+
+    it('should fail when DTO validation fails', async () => {
+      const invalidReturnDto = { memberCode: '', bookCode: '' };
+
+      return request(app.getHttpServer())
+        .post('/transaction/return')
+        .send(invalidReturnDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+          const errors = res.body.message;
+          const hasMemberCodeError = errors.some(
+            (error) =>
+              typeof error === 'object' && error.field === 'memberCode',
+          );
+          expect(hasMemberCodeError).toBe(true);
+        });
+    });
   });
 });

@@ -31,7 +31,7 @@ export class TransactionController {
     description: 'Berhasil meminjam buku.',
     schema: {
       type: 'string',
-      example: 'Book "Laskar Pelangi" successfully borrowed by John Doe',
+      example: 'Book "Harry Potter" successfully borrowed by Angga',
     },
   })
   @ApiResponse({
@@ -68,7 +68,12 @@ export class TransactionController {
     },
   })
   async borrowBook(@Body(new ZodValidationPipe(BorrowBookSchema)) dto: any) {
-    return await this.borrowBookUseCase.execute(dto);
+    const result = await this.borrowBookUseCase.execute(dto);
+
+    return {
+      status: 'success',
+      message: result,
+    };
   }
 
   @Post('/return')
@@ -82,7 +87,7 @@ export class TransactionController {
     description: 'Berhasil mengembalikan buku.',
     schema: {
       type: 'string',
-      example: 'Book "Laskar Pelangi" successfully returned.',
+      example: 'Book "Harry Potter" successfully returned.',
     },
   })
   @ApiResponse({
@@ -119,6 +124,11 @@ export class TransactionController {
     },
   })
   async returnBook(@Body(new ZodValidationPipe(ReturnBookSchema)) dto: any) {
-    return await this.returnBookUseCase.execute(dto);
+    const result = await this.returnBookUseCase.execute(dto);
+
+    return {
+      status: 'success',
+      message: result,
+    };
   }
 }

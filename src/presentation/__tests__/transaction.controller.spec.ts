@@ -1,85 +1,110 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../../app.module';
+import { TransactionController } from '../controllers/transaction.controller';
+import { BorrowBookUseCase } from '../../application/use-cases/borrow-book.use-case';
+import { ReturnBookUseCase } from '../../application/use-cases/return-book.use-case';
+import {
+  BorrowBookDto,
+  BorrowBookSchema,
+} from '../../application/dtos/borrow-book.dto';
+import {
+  ReturnBookDto,
+  ReturnBookSchema,
+} from '../../application/dtos/return-book.dto';
+import { ZodError } from 'zod';
 
-describe('TransactionController (e2e)', () => {
-  let app: INestApplication;
+describe('TransactionController', () => {
+  let controller: TransactionController;
+  let mockBorrowBookUseCase: jest.Mocked<BorrowBookUseCase>;
+  let mockReturnBookUseCase: jest.Mocked<ReturnBookUseCase>;
 
-  beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+  beforeEach(async () => {
+    mockBorrowBookUseCase = { execute: jest.fn() } as any;
+    mockReturnBookUseCase = { execute: jest.fn() } as any;
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [TransactionController],
+      providers: [
+        { provide: BorrowBookUseCase, useValue: mockBorrowBookUseCase },
+        { provide: ReturnBookUseCase, useValue: mockReturnBookUseCase },
+      ],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    controller = module.get<TransactionController>(TransactionController);
   });
 
-  it('should borrow a book successfully', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/transaction/borrow')
-      .send({ memberCode: 'M001', bookCode: 'JK-45' })
-      .expect(201);
+  describe('borrowBook', () => {
+    const mockBorrowDto: BorrowBookDto = {
+      memberCode: 'M001',
+      bookCode: 'JK-45',
+    };
 
-    expect(response.text).toContain('successfully borrowed');
+    it('should successfully borrow a book', async () => {
+      mockBorrowBookUseCase.execute.mockResolvedValue(
+        'Book borrowed successfully.',
+      );
+
+      const result = await controller.borrowBook(mockBorrowDto);
+      expect(result).toEqual({
+        status: 'success',
+        message: 'Book borrowed successfully.',
+      });
+      expect(mockBorrowBookUseCase.execute).toHaveBeenCalledWith(mockBorrowDto);
+    });
+
+    it('should fail when member not found', async () => {
+      mockBorrowBookUseCase.execute.mockRejectedValue(
+        new Error('Member not found.'),
+      );
+
+      await expect(controller.borrowBook(mockBorrowDto)).rejects.toThrowError(
+        'Member not found.',
+      );
+      expect(mockBorrowBookUseCase.execute).toHaveBeenCalledWith(mockBorrowDto);
+    });
+
+    it('should fail when DTO validation fails', async () => {
+      const invalidBorrowDto: any = { memberCode: '', bookCode: '' };
+
+      expect(() => BorrowBookSchema.parse(invalidBorrowDto)).toThrow(ZodError);
+      expect(mockBorrowBookUseCase.execute).not.toHaveBeenCalled();
+    });
   });
 
-  it('should fail to borrow a book if data is invalid', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/transaction/borrow')
-      .send({ memberCode: '', bookCode: '' })
-      .expect(400);
+  describe('returnBook', () => {
+    const mockReturnDto: ReturnBookDto = {
+      memberCode: 'M001',
+      bookCode: 'JK-45',
+    };
 
-    expect(response.body.message).toContain('Invalid data provided');
+    it('should successfully return a book', async () => {
+      mockReturnBookUseCase.execute.mockResolvedValue(
+        'Book returned successfully.',
+      );
 
-    expect(response.body.message).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          field: 'memberCode',
-          message: expect.any(String),
-        }),
-        expect.objectContaining({
-          field: 'bookCode',
-          message: expect.any(String),
-        }),
-        'Invalid data provided',
-      ]),
-    );
-  });
+      const result = await controller.returnBook(mockReturnDto);
+      expect(result).toEqual({
+        status: 'success',
+        message: 'Book returned successfully.',
+      });
+      expect(mockReturnBookUseCase.execute).toHaveBeenCalledWith(mockReturnDto);
+    });
 
-  it('should return a book successfully', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/transaction/return')
-      .send({ memberCode: 'M001', bookCode: 'JK-45' })
-      .expect(201);
+    it('should fail when book is already returned', async () => {
+      mockReturnBookUseCase.execute.mockRejectedValue(
+        new Error('This book has already been returned.'),
+      );
 
-    expect(response.text).toContain('successfully returned');
-  });
+      await expect(controller.returnBook(mockReturnDto)).rejects.toThrowError(
+        'This book has already been returned.',
+      );
+      expect(mockReturnBookUseCase.execute).toHaveBeenCalledWith(mockReturnDto);
+    });
 
-  it('should fail to return a book if data is invalid', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/transaction/return')
-      .send({ memberCode: '', bookCode: '' })
-      .expect(400);
+    it('should fail when DTO validation fails', async () => {
+      const invalidReturnDto: any = { memberCode: '', bookCode: '' };
 
-    expect(response.body.message).toContain('Invalid data provided');
-
-    expect(response.body.message).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          field: 'memberCode',
-          message: expect.any(String),
-        }),
-        expect.objectContaining({
-          field: 'bookCode',
-          message: expect.any(String),
-        }),
-        'Invalid data provided',
-      ]),
-    );
-  });
-
-  afterAll(async () => {
-    await app.close();
+      expect(() => ReturnBookSchema.parse(invalidReturnDto)).toThrow(ZodError);
+      expect(mockReturnBookUseCase.execute).not.toHaveBeenCalled();
+    });
   });
 });

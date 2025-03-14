@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const CreateBookSchema = z.object({
@@ -8,3 +9,29 @@ export const CreateBookSchema = z.object({
 });
 
 export type CreateBookDto = z.infer<typeof CreateBookSchema>;
+
+export class CreateBookDtoClass {
+  @ApiProperty({
+    description: 'Kode unik buku',
+    example: 'JK-45',
+    required: true,
+  })
+  code: string;
+
+  @ApiProperty({
+    description: 'Judul buku',
+    example: 'Harry Potter',
+    required: true,
+  })
+  title: string;
+
+  @ApiProperty({
+    description: 'Nama penulis buku',
+    example: 'J.K Rowling',
+    required: true,
+  })
+  author: string;
+
+  @ApiProperty({ description: 'Jumlah stok buku', example: 5, required: true })
+  stock: number;
+}
